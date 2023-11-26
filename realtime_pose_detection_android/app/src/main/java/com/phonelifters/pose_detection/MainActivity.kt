@@ -1,4 +1,4 @@
-package com.programminghut.pose_detection
+package com.phonelifters.pose_detection
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -13,20 +13,21 @@ import android.os.HandlerThread
 import android.util.Log
 import android.view.Surface
 import android.view.TextureView
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.programminghut.pose_detection.ml.LiteModelMovenetSingleposeLightningTfliteFloat164
-import com.programminghut.pose_detection.ml.Model1
-import com.programminghut.pose_detection.ml.Model2
+import androidx.core.content.ContextCompat
+import com.phonelifters.pose_detection.R
+import com.phonelifters.pose_detection.ml.LiteModelMovenetSingleposeLightningTfliteFloat164
+import com.phonelifters.pose_detection.ml.Model1
+import com.phonelifters.pose_detection.ml.Model2
 //import kotlinx.coroutines.NonCancellable.message
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.image.ops.ResizeOp
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
-import org.w3c.dom.Text
 
 class MainActivity : AppCompatActivity() {
 
@@ -130,7 +131,9 @@ class MainActivity : AppCompatActivity() {
                 val outputFeature2 = output2.outputFeature0AsTensorBuffer.floatArray
 
                 lateinit var message: Button
+                lateinit var done: Button
                 message = findViewById(R.id.accuracy)
+                done = findViewById(R.id.done)
                 //message = findViewById(R.id.accuracy_message)
 
                 if (outputFeature1.get(0) == 1f && outputFeature2.get(0) == 1f)
@@ -147,6 +150,10 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 message.display
+                done.display
+
+                done.setOnClickListener({ returnToMainApp() })
+
 
                 imageView.setImageBitmap(mutable)
             }
@@ -195,6 +202,19 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if(grantResults[0] != PackageManager.PERMISSION_GRANTED) get_permissions()
     }
+
+    fun returnToMainApp()
+    {
+        finish()
+        /*
+        val returnIntent = packageManager.getLaunchIntentForPackage("com.phonelifters.armenu")
+        if (returnIntent != null)
+        {
+            startActivity(returnIntent, null)
+        }
+
+         */
+    }
 }
 
 /*
@@ -205,5 +225,8 @@ https://www.educba.com/kotlin-empty-list/
 https://www.quora.com/How-do-I-solve-this-problem-in-Android-studio-Java-lang-IllegalArgumentException-The-size-of-byte-buffer-and-the-shape-do-not-match,
 https://www.geeksforgeeks.org/textview-in-android-with-example/,
 https://developer.android.com/reference/kotlin/android/widget/TextView,
-https://developer.android.com/reference/android/widget/Button
+https://developer.android.com/reference/android/widget/Button,
+https://stackoverflow.com/a/31696644,
+https://stackoverflow.com/a/31696491,
+https://stackoverflow.com/a/76680021
  */
