@@ -228,5 +228,6 @@ https://developer.android.com/reference/kotlin/android/widget/TextView,
 https://developer.android.com/reference/android/widget/Button,
 https://stackoverflow.com/a/31696644,
 https://stackoverflow.com/a/31696491,
-https://stackoverflow.com/a/76680021
+https://stackoverflow.com/a/76680021,
+https://stackoverflow.com/a/4038637
  */
