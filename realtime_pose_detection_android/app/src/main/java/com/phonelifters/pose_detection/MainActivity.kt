@@ -23,11 +23,14 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.pose.Pose
 import com.google.mlkit.vision.pose.PoseDetection
 import com.google.mlkit.vision.pose.PoseDetectorOptionsBase
-import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
+import com.google.mlkit.vision.pose.PoseLandmark
+import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
+//import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import com.phonelifters.pose_detection.R
 import com.phonelifters.pose_detection.ml.LiteModelMovenetSingleposeLightningTfliteFloat164
 import com.phonelifters.pose_detection.ml.Model1
 import com.phonelifters.pose_detection.ml.Model2
+import org.apache.commons.lang3.ObjectUtils.Null
 //import kotlinx.coroutines.NonCancellable.message
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.image.ImageProcessor
@@ -55,8 +58,9 @@ class MainActivity : AppCompatActivity() {
         //            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
         //            .build()
 
-        val options:PoseDetectorOptionsBase = PoseDetectorOptions.Builder()
-            .setDetectorMode(PoseDetectorOptions.STREAM_MODE).build()
+        var options:AccuratePoseDetectorOptions = AccuratePoseDetectorOptions.Builder()
+            .setDetectorMode(AccuratePoseDetectorOptions.STREAM_MODE)
+            .build()
 
         val poseDetector = PoseDetection.getClient(options)
 
@@ -89,17 +93,30 @@ class MainActivity : AppCompatActivity() {
             override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
                 bitmap = textureView.bitmap!!
                 val image = InputImage.fromBitmap(bitmap, 0)
-                val success: Pose
+                var success = mutableListOf<PoseLandmark>()
 
                 val result = poseDetector.process(image).addOnSuccessListener { results ->
-                        results.getAllPoseLandmarks()
+                        success = results.allPoseLandmarks
+                    var a = mutableListOf<Float>()
+                    var landmarks = results.getAllPoseLandmarks()
+                    if(landmarks != null){
+                        for(landmark in landmarks){
+                            a.add(landmark.position3D.x)
+                            a.add(landmark.position3D.y)
+                            a.add(landmark.position3D.z)
+                        }
+                        //Log.d("numbers?", results.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)!!.position3D.x.toString())
+                        println(a.toString())
+                    }
+
+                    //Log.d("success", "ues")
                     }
                     .addOnFailureListener { e ->
                         // Task failed with an exception
                         // ...
                     }
 
-                Log.d("results", result.toString())
+                //Log.d("results", result.toString())
 
                 var tensorImage = TensorImage(DataType.UINT8)
                 tensorImage.load(bitmap)
@@ -166,8 +183,8 @@ class MainActivity : AppCompatActivity() {
                 //Log.d("output 1 results", outputFeature1.size.toString())
                 //Log.d("output 2 results", outputFeature2.size.toString())
 
-                Log.d("output feature 1 value", outputFeature1.get(0).toString())
-                Log.d("output feature 2 value", outputFeature2.get(0).toString())
+                //Log.d("output feature 1 value", outputFeature1.get(0).toString())
+                //Log.d("output feature 2 value", outputFeature2.get(0).toString())
 
                 if (outputFeature1.get(0) == 1f && outputFeature2.get(0) == 1f)
                 {
@@ -176,7 +193,7 @@ class MainActivity : AppCompatActivity() {
 
                 else
                 {
-                    Log.d("accuracy", "incorrect")
+                    //Log.d("accuracy", "incorrect")
                     message.text = "Keep Trying"
                 }
 
