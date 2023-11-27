@@ -18,6 +18,12 @@ import android.widget.Button
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.google.android.gms.tasks.Task
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.pose.Pose
+import com.google.mlkit.vision.pose.PoseDetection
+import com.google.mlkit.vision.pose.PoseDetectorOptionsBase
+import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import com.phonelifters.pose_detection.R
 import com.phonelifters.pose_detection.ml.LiteModelMovenetSingleposeLightningTfliteFloat164
 import com.phonelifters.pose_detection.ml.Model1
@@ -44,6 +50,15 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         get_permissions()
+
+        //PoseDetectorOptions.Builder()
+        //            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
+        //            .build()
+
+        val options:PoseDetectorOptionsBase = PoseDetectorOptions.Builder()
+            .setDetectorMode(PoseDetectorOptions.STREAM_MODE).build()
+
+        val poseDetector = PoseDetection.getClient(options)
 
         imageProcessor = ImageProcessor.Builder().add(ResizeOp(192, 192, ResizeOp.ResizeMethod.BILINEAR)).build()
         model = LiteModelMovenetSingleposeLightningTfliteFloat164.newInstance(this)
@@ -73,6 +88,19 @@ class MainActivity : AppCompatActivity() {
 
             override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
                 bitmap = textureView.bitmap!!
+                val image = InputImage.fromBitmap(bitmap, 0)
+                val success: Pose
+
+                val result = poseDetector.process(image).addOnSuccessListener { results ->
+                        results.getAllPoseLandmarks()
+                    }
+                    .addOnFailureListener { e ->
+                        // Task failed with an exception
+                        // ...
+                    }
+
+                Log.d("results", result.toString())
+
                 var tensorImage = TensorImage(DataType.UINT8)
                 tensorImage.load(bitmap)
                 tensorImage = imageProcessor.process(tensorImage)
@@ -135,11 +163,14 @@ class MainActivity : AppCompatActivity() {
                 message = findViewById(R.id.accuracy)
                 done = findViewById(R.id.done)
                 //message = findViewById(R.id.accuracy_message)
+                //Log.d("output 1 results", outputFeature1.size.toString())
+                //Log.d("output 2 results", outputFeature2.size.toString())
+
+                Log.d("output feature 1 value", outputFeature1.get(0).toString())
+                Log.d("output feature 2 value", outputFeature2.get(0).toString())
 
                 if (outputFeature1.get(0) == 1f && outputFeature2.get(0) == 1f)
                 {
-
-                    Log.d("accuracy", "correct")
                     message.text = "Correct!"
                 }
 
@@ -205,15 +236,16 @@ class MainActivity : AppCompatActivity() {
 
     fun returnToMainApp()
     {
-        finish()
+       finish()
+
         /*
         val returnIntent = packageManager.getLaunchIntentForPackage("com.phonelifters.armenu")
         if (returnIntent != null)
         {
             startActivity(returnIntent, null)
         }
-
          */
+
     }
 }
 
@@ -229,5 +261,10 @@ https://developer.android.com/reference/android/widget/Button,
 https://stackoverflow.com/a/31696644,
 https://stackoverflow.com/a/31696491,
 https://stackoverflow.com/a/76680021,
-https://stackoverflow.com/a/4038637
+https://stackoverflow.com/a/4038637,
+https://stackoverflow.com/a/4767832 (investigate later),
+https://developers.google.com/ml-kit/vision/pose-detection/android,
+https://developers.google.com/ml-kit/vision/pose-detection/android#using-a-bitmap,
+https://github.com/googlesamples/mlkit/blob/bc243262d40eba8eeac12556fe756450b692019a/android/vision-quickstart/app/src/main/java/com/google/mlkit/vision/demo/kotlin/posedetector/PoseDetectorProcessor.kt#L55,
+https://medium.com/@juancoutomayero/ml-kit-and-pose-detection-e22ae3a241a6 (investigate later)
  */
