@@ -28,8 +28,15 @@ import com.google.mlkit.vision.pose.accurate.AccuratePoseDetectorOptions
 //import com.google.mlkit.vision.pose.defaults.PoseDetectorOptions
 import com.phonelifters.pose_detection.R
 import com.phonelifters.pose_detection.ml.LiteModelMovenetSingleposeLightningTfliteFloat164
+import com.phonelifters.pose_detection.ml.MlkitModel2
 import com.phonelifters.pose_detection.ml.Model1
 import com.phonelifters.pose_detection.ml.Model2
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import okhttp3.internal.wait
+//import kotlinx.coroutines.NonCancellable.message
+
 import org.apache.commons.lang3.ObjectUtils.Null
 //import kotlinx.coroutines.NonCancellable.message
 import org.tensorflow.lite.DataType
@@ -63,11 +70,12 @@ class MainActivity : AppCompatActivity() {
             .build()
 
         val poseDetector = PoseDetection.getClient(options)
-
+        var m: Mutex
+        m = Mutex()
         imageProcessor = ImageProcessor.Builder().add(ResizeOp(192, 192, ResizeOp.ResizeMethod.BILINEAR)).build()
         model = LiteModelMovenetSingleposeLightningTfliteFloat164.newInstance(this)
-        val classifier1 = Model1.newInstance(this)
-        val classifier2 = Model2.newInstance(this)
+        val classifier1 = MlkitModel2.newInstance(this)
+        //val classifier2 = Model2.newInstance(this)
         imageView = findViewById(R.id.imageView)
         textureView = findViewById(R.id.textureView)
         cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
@@ -90,32 +98,70 @@ class MainActivity : AppCompatActivity() {
                 return false
             }
 
+            fun getResult(bitmap: Bitmap) = runBlocking {
+                launch {
+                    m.lock()
+
+                    val image = InputImage.fromBitmap(bitmap, 0)
+                    var success = mutableListOf<PoseLandmark>()
+                    var input_list = mutableListOf<Float>()
+                    val result = poseDetector.process(image).addOnSuccessListener { results ->
+
+
+
+                        var landmarks = results.getAllPoseLandmarks()
+                        if(landmarks != null){
+                            println("GETTING HERE")
+                            for(landmark in landmarks){
+                                input_list.add(landmark.position3D.x)
+                                input_list.add(landmark.position3D.y)
+                                input_list.add(landmark.position3D.z)
+                            }
+                            println(input_list.size)
+                            //Log.d("numbers?", results.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)!!.position3D.x.toString()
+                            //val outputFeature1 = mutableListOf<Float>(0f)
+                            if(input_list.size != 0) {
+                                val input1 = TensorBuffer.createDynamic(DataType.FLOAT32)
+                                input1.loadArray(input_list.toFloatArray(), intArrayOf(99))
+                                val output1 = classifier1.process(input1)
+                                val outputFeature1 = output1.outputFeature0AsTensorBuffer.floatArray
+
+                                lateinit var message: Button
+
+                                message = findViewById(R.id.accuracy)
+
+                                println(outputFeature1.get(0))
+                                if (outputFeature1.get(0) > 0.7f) {// && outputFeature2.get(0) == 1f) {
+                                    message.text = "Correct!"
+                                } else {
+                                    //Log.d("accuracy", "incorrect")
+                                    message.text = "Keep Trying"
+                                }
+
+                                message.display
+                            }
+
+
+                            input_list.clear()
+                        }
+
+                        //Log.d("success", "ues")
+                    }
+                        .addOnFailureListener { e ->
+                            // Task failed with an exception
+                            // ...
+                        }
+                    m.unlock()
+                }
+            }
+
             override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
                 bitmap = textureView.bitmap!!
-                val image = InputImage.fromBitmap(bitmap, 0)
-                var success = mutableListOf<PoseLandmark>()
 
-                val result = poseDetector.process(image).addOnSuccessListener { results ->
-                        success = results.allPoseLandmarks
-                    var a = mutableListOf<Float>()
-                    var landmarks = results.getAllPoseLandmarks()
-                    if(landmarks != null){
-                        for(landmark in landmarks){
-                            a.add(landmark.position3D.x)
-                            a.add(landmark.position3D.y)
-                            a.add(landmark.position3D.z)
-                        }
-                        //Log.d("numbers?", results.getPoseLandmark(PoseLandmark.LEFT_SHOULDER)!!.position3D.x.toString())
-                        println(a.toString())
-                    }
+                getResult(bitmap)
 
-                    //Log.d("success", "ues")
-                    }
-                    .addOnFailureListener { e ->
-                        // Task failed with an exception
-                        // ...
-                    }
-
+                //while(!result.isComplete){}
+                //println(input_list.size)
                 //Log.d("results", result.toString())
 
                 var tensorImage = TensorImage(DataType.UINT8)
@@ -142,19 +188,19 @@ class MainActivity : AppCompatActivity() {
                     if(outputFeature0.get(x+2) > 0.45){
                         canvas.drawCircle(outputFeature0.get(x+1)*w, outputFeature0.get(x)*h, 10f, paint)
                         //append to CSV file
-                        a = outputFeature0.get(x+1)*w
-                        b = outputFeature0.get(x)*h
+                        //a = outputFeature0.get(x+1)*w
+                        //b = outputFeature0.get(x)*h
 
                     }
 
                     else
                     {
-                        a = 0f
-                        b = 0f
+                        //a = 0f
+                        //b = 0f
                     }
 
-                    currentRow.add(a)
-                    currentRow.add(b)
+                    //currentRow.add(a)
+                    //currentRow.add(b)
 
                     /*
                     val a = outputFeature0.get(x+1)*w
@@ -165,42 +211,43 @@ class MainActivity : AppCompatActivity() {
                     x+=3
                 }
 
-                val input1 = TensorBuffer.createDynamic(DataType.FLOAT32)
-                input1.loadArray(currentRow.toFloatArray(), intArrayOf(34))
-                val output1 = classifier1.process(input1)
-                val outputFeature1 = output1.outputFeature0AsTensorBuffer.floatArray
+                /*if(input_list != null && input_list.size > 0) {
+                    val input1 = TensorBuffer.createDynamic(DataType.FLOAT32)
+                    input1.loadArray(input_list.toFloatArray(), intArrayOf(99))
+                    val output1 = classifier1.process(input1)
+                    val outputFeature1 = output1.outputFeature0AsTensorBuffer.floatArray
 
-                val input2 = TensorBuffer.createDynamic(DataType.FLOAT32)
-                input2.loadArray(currentRow.toFloatArray(), intArrayOf(34))
-                val output2 = classifier2.process(input2)
-                val outputFeature2 = output2.outputFeature0AsTensorBuffer.floatArray
+                    /*val input2 = TensorBuffer.createDynamic(DataType.FLOAT32)
+                    input2.loadArray(currentRow.toFloatArray(), intArrayOf(34))
+                    val output2 = classifier2.process(input2)
+                    val outputFeature2 = output2.outputFeature0AsTensorBuffer.floatArray*/
 
-                lateinit var message: Button
+                    lateinit var message: Button
+
+                    message = findViewById(R.id.accuracy)
+
+                    //message = findViewById(R.id.accuracy_message)
+                    //Log.d("output 1 results", outputFeature1.size.toString())
+                    //Log.d("output 2 results", outputFeature2.size.toString())
+
+                    //Log.d("output feature 1 value", outputFeature1.get(0).toString())
+                    //Log.d("output feature 2 value", outputFeature2.get(0).toString())
+
+                    if (outputFeature1.get(0) == 1f) {// && outputFeature2.get(0) == 1f) {
+                        message.text = "Correct!"
+                    } else {
+                        //Log.d("accuracy", "incorrect")
+                        message.text = "Keep Trying"
+                    }
+
+                    message.display
+                }*/
                 lateinit var done: Button
-                message = findViewById(R.id.accuracy)
                 done = findViewById(R.id.done)
-                //message = findViewById(R.id.accuracy_message)
-                //Log.d("output 1 results", outputFeature1.size.toString())
-                //Log.d("output 2 results", outputFeature2.size.toString())
+                    done.display
 
-                //Log.d("output feature 1 value", outputFeature1.get(0).toString())
-                //Log.d("output feature 2 value", outputFeature2.get(0).toString())
 
-                if (outputFeature1.get(0) == 1f && outputFeature2.get(0) == 1f)
-                {
-                    message.text = "Correct!"
-                }
-
-                else
-                {
-                    //Log.d("accuracy", "incorrect")
-                    message.text = "Keep Trying"
-                }
-
-                message.display
-                done.display
-
-                done.setOnClickListener({ returnToMainApp() })
+                    done.setOnClickListener({ returnToMainApp() })
 
 
                 imageView.setImageBitmap(mutable)
