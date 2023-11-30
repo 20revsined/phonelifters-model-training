@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
         //            .setDetectorMode(PoseDetectorOptions.STREAM_MODE)
         //            .build()
 
-        var options:AccuratePoseDetectorOptions = AccuratePoseDetectorOptions.Builder()
+        var options : AccuratePoseDetectorOptions = AccuratePoseDetectorOptions.Builder()
             .setDetectorMode(AccuratePoseDetectorOptions.STREAM_MODE)
             .build()
 
@@ -101,7 +101,7 @@ class MainActivity : AppCompatActivity() {
             fun getResult(bitmap: Bitmap) = runBlocking {
                 launch {
                     m.lock()
-
+                    println("ENTERING LOCK")
                     val image = InputImage.fromBitmap(bitmap, 0)
                     var success = mutableListOf<PoseLandmark>()
                     var input_list = mutableListOf<Float>()
@@ -148,14 +148,14 @@ class MainActivity : AppCompatActivity() {
                         //Log.d("success", "ues")
                     }
                         .addOnFailureListener { e ->
-                            // Task failed with an exception
-                            // ...
+                            Log.d("failed", "error in recognizing body")
                         }
                     m.unlock()
                 }
             }
 
             override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
+                //Log.d("apps", packageManager.getInstalledApplications(0).toString())
                 bitmap = textureView.bitmap!!
 
                 getResult(bitmap)
@@ -244,10 +244,10 @@ class MainActivity : AppCompatActivity() {
                 }*/
                 lateinit var done: Button
                 done = findViewById(R.id.done)
-                    done.display
+                done.display
 
 
-                    done.setOnClickListener({ returnToMainApp() })
+                done.setOnClickListener({ returnToMainApp() })
 
 
                 imageView.setImageBitmap(mutable)
@@ -330,5 +330,12 @@ https://stackoverflow.com/a/4767832 (investigate later),
 https://developers.google.com/ml-kit/vision/pose-detection/android,
 https://developers.google.com/ml-kit/vision/pose-detection/android#using-a-bitmap,
 https://github.com/googlesamples/mlkit/blob/bc243262d40eba8eeac12556fe756450b692019a/android/vision-quickstart/app/src/main/java/com/google/mlkit/vision/demo/kotlin/posedetector/PoseDetectorProcessor.kt#L55,
-https://medium.com/@juancoutomayero/ml-kit-and-pose-detection-e22ae3a241a6 (investigate later)
+https://medium.com/@juancoutomayero/ml-kit-and-pose-detection-e22ae3a241a6 (investigate later),
+https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-play-services/kotlinx.coroutines.tasks/await.html,
+https://stackoverflow.com/a/45213749,
+https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.sync/-mutex/,
+https://medium.com/@android-world/kotlin-mutex-a-comprehensive-guide-a79d0f4f2de7#:~:text=A%20Mutex%20is%20a%20synchronization,task%20at%20a%20given%20time.,
+https://medium.com/@diousk507/kotlin-coroutine-await-for-listener-5148c85e001f,
+https://kotlinlang.org/docs/coroutines-basics.html,
+https://developer.android.com/kotlin/coroutines
  */
